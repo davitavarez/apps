@@ -1347,7 +1347,7 @@ function ConfigTab({
   draftRules, onUpdateRule, onRemoveRule, onAddRule,
   draftSkills, onUpdateSkill, onResetSkills, onRandomizeSkills,
   onApply, onResetDraft, onNewChampionship,
-  savesList, newSaveName, setNewSaveName, onSave, onLoad, onDelete,
+  savesList, newSaveName, setNewSaveName, onSave, onLoad, onDelete, onExport, onImport,
 }) {
   const nameCount = draftNamesText.split("\n").map((s) => s.trim()).filter(Boolean).length;
   const savesArr = Object.values(savesList).sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
@@ -1531,6 +1531,10 @@ function ConfigTab({
           <input value={newSaveName} onChange={(e) => setNewSaveName(e.target.value)} placeholder="Nome para este save..." style={{ ...inputStyle, flex: "1 1 220px" }} />
           <button onClick={onSave} disabled={!newSaveName.trim()} style={{ ...primaryBtnStyle, opacity: newSaveName.trim() ? 1 : 0.5, cursor: newSaveName.trim() ? "pointer" : "not-allowed" }}><Save size={14} /> Salvar campeonato atual</button>
         </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          <button onClick={onExport} style={{ ...secondaryBtnStyle, display: "flex", alignItems: "center", gap: 6 }}><Save size={14} /> Exportar save</button>
+          <button onClick={onImport} style={{ ...secondaryBtnStyle, display: "flex", alignItems: "center", gap: 6 }}><FolderOpen size={14} /> Importar save</button>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 10, marginTop: 14 }}>
           {savesArr.length === 0 && <div style={{ color: C.dim, fontSize: 13 }}>Nenhum campeonato salvo com nome ainda.</div>}
           {savesArr.map((s) => (
@@ -1574,6 +1578,7 @@ export default function App() {
   const [showRestored, setShowRestored] = useState(false);
   const [storageAvailable, setStorageAvailable] = useState(true);
   const autosaveTimer = useRef(null);
+  const importInputRef = useRef(null);
 
   const [players, setPlayers] = useState(() => generatePlayers(DEFAULT_CONFIG.totalPlayers, DEFAULT_NAMES));
   const playersById = useMemo(() => Object.fromEntries(players.map((p) => [p.id, p])), [players]);
@@ -1945,6 +1950,109 @@ export default function App() {
     setTab("simulador");
   }
 
+  function buildSavePayload() {
+    return {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      mode,
+      players,
+      playerNames,
+      config,
+      placementRules,
+      playerSkills,
+      matchesData,
+      revealMap,
+      currentIdx,
+      speed,
+      day,
+      standingsScope,
+      savesList,
+      draftConfig,
+      draftNamesText,
+      draftRules,
+      draftSkills,
+    };
+  }
+
+  function handleExportSave() {
+    const payload = buildSavePayload();
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fncs-save-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setShowSaved(true);
+    window.setTimeout(() => setShowSaved(false), 2500);
+  }
+
+  function handleImportSave(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (!parsed || typeof parsed !== "object") throw new Error("Save inválido");
+
+        const nextMode = parsed.mode || DEFAULT_TEAM_SIZE;
+        const nextConfig = parsed.config || DEFAULT_CONFIG;
+        const nextNames = Array.isArray(parsed.playerNames) && parsed.playerNames.length ? parsed.playerNames : DEFAULT_NAMES;
+        const nextRules = Array.isArray(parsed.placementRules) && parsed.placementRules.length ? parsed.placementRules : DEFAULT_PLACEMENT_RULES;
+        const nextSkills = parsed.playerSkills || {};
+        const nextPlayers = Array.isArray(parsed.players) && parsed.players.length ? parsed.players : generatePlayers(nextConfig.totalPlayers, nextNames, nextSkills);
+        const nextMatchesData = Array.isArray(parsed.matchesData) ? parsed.matchesData : Array((nextConfig.matchesPerDay || DEFAULT_CONFIG.matchesPerDay) * (nextConfig.totalDays || DEFAULT_CONFIG.totalDays)).fill(null);
+
+        if (!window.confirm("Importar esse save vai substituir o progresso atual. Continuar?")) {
+          event.target.value = "";
+          return;
+        }
+
+        setIsPlaying(false);
+        setConfig(nextConfig);
+        setPlayerNames(nextNames);
+        setPlacementRules(nextRules);
+        setPlayerSkills(nextSkills);
+        setMode(nextMode);
+        setPlayers(nextPlayers);
+        setMatchesData(nextMatchesData);
+        setRevealMap(parsed.revealMap || {});
+        setCurrentIdx(Number.isInteger(parsed.currentIdx) ? parsed.currentIdx : 0);
+        setSpeed(parsed.speed || 1100);
+        setDay(parsed.day || 1);
+        setStandingsScope(parsed.standingsScope || "total");
+        setDraftConfig(nextConfig);
+        setDraftNamesText(nextNames.join("\n"));
+        setDraftRules(rulesToDraft(nextRules));
+        setDraftSkills(nextSkills);
+        const importedSaves = parsed.savesList && typeof parsed.savesList === "object" ? parsed.savesList : savesList;
+        setSavesList(importedSaves);
+        safeSet(SAVES_KEY, JSON.stringify(importedSaves));
+        safeSet(AUTOSAVE_KEY, JSON.stringify({
+          savedAt: new Date().toISOString(), mode: nextMode, players: nextPlayers, playerNames: nextNames, config: nextConfig,
+          placementRules: nextRules, playerSkills: nextSkills, matchesData: nextMatchesData, revealMap: parsed.revealMap || {}, currentIdx: Number.isInteger(parsed.currentIdx) ? parsed.currentIdx : 0,
+          speed: parsed.speed || 1100, day: parsed.day || 1, standingsScope: parsed.standingsScope || "total"
+        }));
+        setSelectedPlayer(null);
+        setSelectedTeam(null);
+        setShowFinal(false);
+        setTab("simulador");
+        setShowRestored(true);
+        window.setTimeout(() => setShowRestored(false), 2500);
+      } catch (error) {
+        window.alert("Arquivo de save inválido. Envie um JSON exportado pelo próprio app.");
+      } finally {
+        event.target.value = "";
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
   function handleSaveChampionship() {
     const name = newSaveName.trim();
     if (!name) return;
@@ -2285,31 +2393,36 @@ export default function App() {
           {tab === "premiacao" && <PremiacaoTab totalPlayers={config.totalPlayers} killPoints={config.killPoints} scoringBands={scoringBands} placementPointsFn={placementPointsFn} />}
 
           {tab === "config" && (
-            <ConfigTab
-              draftConfig={draftConfig}
-              setDraftConfig={setDraftConfig}
-              mode={mode}
-              onModeChange={handleModeChange}
-              draftNamesText={draftNamesText}
-              setDraftNamesText={setDraftNamesText}
-              draftRules={draftRules}
-              onUpdateRule={updateDraftRule}
-              onRemoveRule={removeDraftRule}
-              onAddRule={addDraftRule}
-              draftSkills={draftSkills}
-              onUpdateSkill={updateDraftSkill}
-              onResetSkills={resetDraftSkills}
-              onRandomizeSkills={randomizeDraftSkills}
-              onApply={applyConfig}
-              onResetDraft={resetDraft}
-              onNewChampionship={handleNewChampionship}
-              savesList={savesList}
-              newSaveName={newSaveName}
-              setNewSaveName={setNewSaveName}
-              onSave={handleSaveChampionship}
-              onLoad={handleLoadChampionship}
-              onDelete={handleDeleteSave}
-            />
+            <>
+              <ConfigTab
+                draftConfig={draftConfig}
+                setDraftConfig={setDraftConfig}
+                mode={mode}
+                onModeChange={handleModeChange}
+                draftNamesText={draftNamesText}
+                setDraftNamesText={setDraftNamesText}
+                draftRules={draftRules}
+                onUpdateRule={updateDraftRule}
+                onRemoveRule={removeDraftRule}
+                onAddRule={addDraftRule}
+                draftSkills={draftSkills}
+                onUpdateSkill={updateDraftSkill}
+                onResetSkills={resetDraftSkills}
+                onRandomizeSkills={randomizeDraftSkills}
+                onApply={applyConfig}
+                onResetDraft={resetDraft}
+                onNewChampionship={handleNewChampionship}
+                savesList={savesList}
+                newSaveName={newSaveName}
+                setNewSaveName={setNewSaveName}
+                onSave={handleSaveChampionship}
+                onLoad={handleLoadChampionship}
+                onDelete={handleDeleteSave}
+                onExport={handleExportSave}
+                onImport={() => importInputRef.current?.click()}
+              />
+              <input ref={importInputRef} type="file" accept=".json,application/json" hidden onChange={handleImportSave} />
+            </>
           )}
 
           {tab === "simulador" && status === "notStarted" && (
