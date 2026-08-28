@@ -744,10 +744,12 @@ function PlayerModal({ player, matchesData, onClose }) {
    em modo dupla/trio/esquadrão). Mostra as estatísticas da equipe já SOMADAS (pontos e kills dos
    dois/três/quatro integrantes juntos) — antes o clique abria só o jogador em memberIds[0].
    =================================================================================== */
-function TeamStandingsModal({ team, matchesData, playersById, onClose }) {
+function TeamStandingsModal({ team, matchesData, playersById, currentIdx, currentRev, onClose }) {
   const rows = [];
   matchesData.forEach((m, idx) => {
     if (!m) return;
+    const isCurrentLiveMatch = idx === currentIdx && currentRev < m.timeline.length;
+    if (isCurrentLiveMatch) return;
     const r = m.results?.find((x) => x.id === team.id);
     if (r) rows.push({ match: idx + 1, place: r.place, kills: r.kills, points: r.points });
   });
@@ -2029,7 +2031,7 @@ export default function App() {
 
       {selectedPlayer && <PlayerModal player={selectedPlayer} matchesData={matchesData} onClose={() => setSelectedPlayer(null)} />}
       {selectedTeam && <TeamModal team={selectedTeam} current={current} currentRev={currentRev} playersById={playersById} onClose={() => setSelectedTeam(null)} />}
-      {selectedStandingsTeam && <TeamStandingsModal team={selectedStandingsTeam} matchesData={matchesData} playersById={playersById} onClose={() => setSelectedStandingsTeam(null)} />}
+      {selectedStandingsTeam && <TeamStandingsModal team={selectedStandingsTeam} matchesData={matchesData} playersById={playersById} currentIdx={currentIdx} currentRev={currentRev} onClose={() => setSelectedStandingsTeam(null)} />}
 
       {showFullStandings && (
         <FullStandingsModal
