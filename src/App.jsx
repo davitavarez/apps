@@ -644,7 +644,7 @@ function TeamModal({ team, current, currentRev, playersById, onClose }) {
       position: "fixed", inset: 0, background: "rgba(5,6,10,0.78)", backdropFilter: "blur(3px)",
       display: "flex", alignItems: "center", justifyContent: "center", zIndex: 55, padding: 16,
     }}>
-      <div onClick={(e) => e.stopPropagation()} style={{
+      <div className="fullModal" onClick={(e) => e.stopPropagation()} style={{
         background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, width: "100%",
         maxWidth: 560, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
@@ -928,7 +928,7 @@ function FullStandingsModal({ standings, scope, scopeOptions, scopeLabel, onScop
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer" }}><X size={20} /></button>
         </div>
         <div style={{ overflow: "auto", flex: 1 }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "Rajdhani, sans-serif" }}>
+          <table className="modalTable" style={{ width: "100%", borderCollapse: "collapse", fontFamily: "Rajdhani, sans-serif" }}>
             <thead>
               <tr style={{ position: "sticky", top: 0, background: C.panel, zIndex: 1 }}>
                 <th style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: C.dim2, textTransform: "uppercase", letterSpacing: "1px", borderBottom: `1px solid ${C.line}` }}>#</th>
@@ -1233,7 +1233,7 @@ function StandingsHistoryModal({ players, teamSize, matchesData, matchDone, tota
   }), [current, referenceRank, search]);
 
   return <div style={{position:"fixed",inset:0,zIndex:80,background:"rgba(5,6,10,.88)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div style={{width:"min(1100px,96vw)",maxHeight:"90vh",background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+    <div className="historyModal" style={{width:"min(1100px,96vw)",maxHeight:"90vh",background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.line}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div><div style={{fontFamily:"Teko,sans-serif",fontSize:28}}>HISTÓRICO DA CLASSIFICAÇÃO</div><div style={{fontSize:12,color:C.dim}}>Compare qualquer classificação com uma tabela de referência.</div></div>
         <button onClick={onClose} style={{background:C.panel2,border:`1px solid ${C.line}`,color:C.text,borderRadius:7,padding:"7px 12px",cursor:"pointer",fontWeight:700}}>FECHAR</button>
@@ -1254,7 +1254,7 @@ function StandingsHistoryModal({ players, teamSize, matchesData, matchDone, tota
       </div>
       <div style={{padding:"8px 18px",fontSize:12,color:C.dim}}>Partida {selectedMatch+1} · {rows.length} equipe(s){referenceMatch != null ? ` · MOV. calculado em relação à Partida ${referenceMatch+1}` : " · selecione uma tabela de referência para calcular o movimento"}</div>
       <div style={{overflow:"auto",padding:"0 18px 18px"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{position:"sticky",top:0,background:C.panel2}}>
+        <table className="modalTable" style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{position:"sticky",top:0,background:C.panel2}}>
           {['#','JOGADOR','MOV.','PONTOS','PARTIDAS','WINS','TOP 10','KILLS'].map((h,i)=><th key={h} style={{padding:"9px 10px",textAlign:i<2?"left":"right",color:C.dim,fontSize:11}}>{h}</th>)}
         </tr></thead><tbody>
           {rows.map(p=><tr key={p.id} style={{borderTop:`1px solid ${C.line}`}}>
@@ -1329,7 +1329,7 @@ function ConfigTab({
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 60px", width: "100%" }}>
+    <div className="configPage" style={{ maxWidth: 900, margin: "0 auto", padding: "24px 16px 60px", width: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <Settings size={20} color={C.purple} />
         <div style={{ fontFamily: "Teko, sans-serif", fontSize: 30, letterSpacing: "0.5px" }}>CONFIGURAÇÕES DO CAMPEONATO</div>
@@ -1466,7 +1466,7 @@ function ConfigTab({
         <button onClick={onAddRule} style={{ ...secondaryBtnStyle, marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}><Plus size={14} /> Adicionar faixa</button>
       </div>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+      <div className="configActions" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
         <button onClick={onApply} style={primaryBtnStyle}><CheckCircle2 size={15} /> Aplicar e reiniciar simulação</button>
         <button onClick={onResetDraft} style={secondaryBtnStyle}>Descartar alterações</button>
       </div>
@@ -1987,16 +1987,44 @@ export default function App() {
   }
 
   return (
-    <div style={{ height: "100vh", background: C.void, color: C.text, fontFamily: "Rajdhani, sans-serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="appShell" style={{ height: "100vh", background: C.void, color: C.text, fontFamily: "Rajdhani, sans-serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
         * { box-sizing: border-box; }
+        html, body, #root { min-width: 0; margin: 0; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${C.line}; border-radius: 4px; }
         @keyframes pulseGold { 0%,100%{opacity:1} 50%{opacity:0.55} }
         @keyframes slideIn { from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:translateY(0)} }
         .feedItem { animation: slideIn 0.25s ease; }
+        @media (max-width: 700px) {
+          .appShell { height: auto !important; min-height: 100vh; overflow: visible !important; }
+          .appHeader { padding: 10px 12px !important; gap: 10px !important; }
+          .appHeader > div:first-child { flex: 1 1 100%; min-width: 0; }
+          .appHeader > div:first-child > div:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          .appHeader .appTabs { order: 3; width: 100%; }
+          .appHeader .appTabs button { flex: 1; justify-content: center; padding: 7px 5px !important; font-size: 11px !important; }
+          .appHeader .modePicker { margin-left: auto; }
+          .appHeader .modePicker > span { display: none; }
+          .dayNav { padding: 8px 12px !important; }
+          .mainLayout { display: block !important; }
+          .standingsPanel { width: 100% !important; height: 330px !important; border-right: none !important; border-bottom: 1px solid ${C.line}; }
+          .mainContent { min-height: 620px; overflow: visible !important; }
+          .simulatorView { padding: 12px 10px 0 !important; }
+          .matchSummary { gap: 10px !important; }
+          .matchSummary > div:first-child { width: 100%; }
+          .matchSummary > div:nth-child(2) { min-width: 0 !important; width: 100%; }
+          .matchControls { gap: 6px !important; }
+          .matchControls button { flex: 1 1 auto; justify-content: center; padding: 8px 9px !important; }
+          .matchControls > div:last-child { width: 100%; margin-left: 0 !important; justify-content: flex-end; }
+          .feedPanel { max-height: 120px !important; }
+          .matchTablePanel { min-height: 420px; overflow: visible !important; }
+          .fullModal, .historyModal { max-width: calc(100vw - 20px) !important; width: calc(100vw - 20px) !important; max-height: 92vh !important; }
+          .modalTable { min-width: 720px; }
+          .configPage { padding: 18px 10px 40px !important; }
+          .configActions button { flex: 1 1 100%; justify-content: center; }
+        }
       `}</style>
 
       {selectedPlayer && <PlayerModal player={selectedPlayer} matchesData={matchesData} onClose={() => setSelectedPlayer(null)} />}
@@ -2061,7 +2089,7 @@ export default function App() {
       )}
 
       {/* HEADER */}
-      <div style={{ borderBottom: `1px solid ${C.line}`, background: C.panel, padding: "12px 20px", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", flexShrink: 0 }}>
+      <div className="appHeader" style={{ borderBottom: `1px solid ${C.line}`, background: C.panel, padding: "12px 20px", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, ${C.purple}, ${C.cyan})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Zap size={17} color="#0A0D14" />
@@ -2072,7 +2100,7 @@ export default function App() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 4, background: C.panel2, borderRadius: 9, padding: 3, border: `1px solid ${C.line}` }}>
+        <div className="appTabs" style={{ display: "flex", gap: 4, background: C.panel2, borderRadius: 9, padding: 3, border: `1px solid ${C.line}` }}>
           {[["simulador", "Simulador", Play], ["premiacao", "Premiação", Award], ["config", "Configurações", Settings]].map(([id, label, Icon]) => (
             <button key={id} onClick={() => setTab(id)} style={{
               padding: "6px 13px", borderRadius: 7, border: "none", cursor: "pointer",
@@ -2082,7 +2110,7 @@ export default function App() {
           ))}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <div className="modePicker" style={{ display: "flex", alignItems: "center", gap: 7 }}>
           <span style={{ fontSize: 11, color: C.dim, fontWeight: 700 }}>MODO:</span>
           <select value={mode} onChange={handleModeChange} style={{ background: C.panel2, border: `1px solid ${C.line}`, color: C.text, borderRadius: 8, padding: "7px 10px", fontFamily: "Rajdhani, sans-serif", fontWeight: 700, cursor: "pointer" }}>
             <option value={1}>Solo</option>
@@ -2128,7 +2156,7 @@ export default function App() {
       </div>
 
       {tab === "simulador" && (
-        <div style={{ display: "flex", gap: 8, padding: "10px 20px", borderBottom: `1px solid ${C.line}`, overflowX: "auto", flexShrink: 0 }}>
+        <div className="dayNav" style={{ display: "flex", gap: 8, padding: "10px 20px", borderBottom: `1px solid ${C.line}`, overflowX: "auto", flexShrink: 0 }}>
           {dayMatches.map((idx) => {
             const st = matchStatus(idx);
             const locked = st === "notStarted" && !canStart(idx);
@@ -2149,8 +2177,8 @@ export default function App() {
       )}
 
       {/* MAIN */}
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <div style={{ width: 280, borderRight: `1px solid ${C.line}`, background: C.panel, minHeight: 0, flexShrink: 0 }}>
+      <div className="mainLayout" style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <div className="standingsPanel" style={{ width: 280, borderRight: `1px solid ${C.line}`, background: C.panel, minHeight: 0, flexShrink: 0 }}>
           <Standings
             standings={scopedStandings}
             scope={standingsScope}
@@ -2167,7 +2195,7 @@ export default function App() {
           />
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, overflowY: tab === "simulador" ? "hidden" : "auto", display: "flex", flexDirection: "column" }}>
+        <div className="mainContent" style={{ flex: 1, minHeight: 0, overflowY: tab === "simulador" ? "hidden" : "auto", display: "flex", flexDirection: "column" }}>
           {tab === "premiacao" && <PremiacaoTab totalPlayers={config.totalPlayers} killPoints={config.killPoints} scoringBands={scoringBands} placementPointsFn={placementPointsFn} />}
 
           {tab === "config" && (
@@ -2215,8 +2243,8 @@ export default function App() {
           )}
 
           {tab === "simulador" && status !== "notStarted" && current && (
-            <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, padding: "16px 20px 0" }}>
-              <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 12, flexShrink: 0 }}>
+            <div className="simulatorView" style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, padding: "16px 20px 0" }}>
+              <div className="matchSummary" style={{ display: "flex", gap: 18, flexWrap: "wrap", marginBottom: 12, flexShrink: 0 }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7 }}><StormRing alive={alive} total={teams.length} /><div style={{ display: "flex", gap: 10, fontFamily: "Rajdhani, sans-serif", fontWeight: 700, fontSize: 12 }}><span style={{ color: C.cyan }}>{alivePlayers} jogadores vivos</span><span style={{ color: C.dim }}>•</span><span style={{ color: C.purple }}>{alive} equipes vivas</span></div></div>
                 <div style={{ flex: 1, minWidth: 220 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
@@ -2261,7 +2289,7 @@ export default function App() {
               </div>
 
               {status === "live" && (
-                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap", flexShrink: 0 }}>
+                <div className="matchControls" style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10, flexWrap: "wrap", flexShrink: 0 }}>
                   <button onClick={() => setIsPlaying((p) => !p)} style={{
                     background: isPlaying ? C.panel2 : `linear-gradient(135deg, ${C.purple}, #5B3FE0)`, border: `1px solid ${isPlaying ? C.line : "transparent"}`,
                     color: "#fff", padding: "8px 15px", borderRadius: 9, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "Rajdhani, sans-serif", fontSize: 13,
@@ -2280,7 +2308,7 @@ export default function App() {
               )}
 
               {status === "live" && feed.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10, flexShrink: 0, maxHeight: 78, overflowY: "auto", background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "4px 10px" }}>
+                <div className="feedPanel" style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10, flexShrink: 0, maxHeight: 78, overflowY: "auto", background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "4px 10px" }}>
                   {feed.map((it, i) => it.type === "milestone" ? (
                     <div key={i} className="feedItem" style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", color: C.gold, fontWeight: 700, fontSize: 12 }}>
                       <Zap size={12} /> TOP {it.value} JOGADORES{it.value <= 5 ? " — TENSÃO MÁXIMA" : ""}
@@ -2297,7 +2325,7 @@ export default function App() {
                 </div>
               )}
 
-              <div style={{ flex: 1, minHeight: 0, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 14, overflow: "hidden" }}>
+              <div className="matchTablePanel" style={{ flex: 1, minHeight: 0, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 12, marginBottom: 14, overflow: "hidden" }}>
                 <MatchTable rows={liveTableRows} playersById={teamsById} onSelect={(team) => setSelectedTeam(team)} />
               </div>
             </div>
