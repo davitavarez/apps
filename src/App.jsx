@@ -17,6 +17,36 @@ const DEFAULT_CONFIG = {
 };
 const DEFAULT_TEAM_SIZE = 2; // 1 = solo, 2 = dupla, 3 = trio, 4 = esquadrão
 
+function EliminationHistoryModal({ items, matchNumber, playersById, onSelectPlayer, onClose }) {
+  const orderedItems = items.slice().reverse();
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(5,6,10,0.8)", backdropFilter: "blur(3px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 70, padding: 16 }}>
+      <div className="fullModal" onClick={(e) => e.stopPropagation()} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, width: "100%", maxWidth: 620, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 10 }}>
+          <Swords size={18} color={C.red} />
+          <div style={{ flex: 1, fontFamily: "Teko, sans-serif", fontSize: 25 }}>HISTÓRICO DE ELIMINAÇÕES · PARTIDA {matchNumber}</div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer" }}><X size={20} /></button>
+        </div>
+        <div style={{ overflowY: "auto", padding: "8px 20px 16px" }}>
+          {orderedItems.map((it, index) => it.type === "milestone" ? (
+            <div key={`${it.second}-milestone-${index}`} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 0", color: C.gold, fontWeight: 700, fontSize: 12 }}>
+              <Zap size={13} /> {formatMatchTime(it.second)} · TOP {it.value} JOGADORES
+            </div>
+          ) : (
+            <div key={`${it.second}-kill-${index}`} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 0", borderBottom: `1px solid ${C.line}`, fontSize: 13 }}>
+              <span style={{ color: C.dim2, width: 38, fontSize: 11 }}>{formatMatchTime(it.second)}</span>
+              {it.killerId ? <Swords size={13} color={C.red} /> : <Wind size={13} color={C.purple} />}
+              {it.killerId && <span onClick={() => onSelectPlayer(playersById[it.killerId])} style={{ fontWeight: 700, cursor: "pointer" }}>{playersById[it.killerId]?.name}</span>}
+              <span style={{ color: C.dim }}>{it.killerId ? "eliminou" : "foi eliminado pela tempestade"}</span>
+              <span onClick={() => onSelectPlayer(playersById[it.victimId])} style={{ cursor: "pointer" }}>{playersById[it.victimId]?.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Chave dos campeonatos salvos manualmente (com nome, na aba Configurações)
 const SAVES_KEY = "fncs_saved_championships";
 // Chave do progresso salvo automaticamente (o campeonato "atual", sem precisar dar nome)
@@ -181,6 +211,11 @@ function phaseLabel(minute, endgameStart) {
   return "ENDGAME";
 }
 
+function formatMatchTime(seconds) {
+  const totalSeconds = Math.max(0, Math.floor(seconds ?? 0));
+  return `${String(Math.floor(totalSeconds / 60)).padStart(2, "0")}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
 // Curva-alvo de "quantos jogadores devem estar vivos" a cada minuto — controla o ritmo
 // da partida. Definida como frações do tempo total e da lobby, então se adapta sozinha
 // a mudanças de total de jogadores / duração / início do endgame.
@@ -253,7 +288,7 @@ function simulateMatch(playerIds, teams, params) {
   const eliminationOrder = [];
   const teamEliminationOrder = [];
   const timeline = [];
-  let minute = 0;
+  let elapsedSeconds = 0;
   const milestoneFractions = [0.5, 0.25, 0.1, 0.05, 0.03, 0.02, 0.01];
   const teamCount = teams.length;
   const thresholds = Array.from(new Set(milestoneFractions.map((f) => Math.max(1, Math.round(f * teamCount))))).sort((a, b) => b - a);
@@ -337,15 +372,17 @@ function simulateMatch(playerIds, teams, params) {
 
   // Curva de jogadores vivos convertida em uma meta de equipes, mas com
   // tolerância para não quebrar equipes artificialmente.
-  while (getAlivePlayers().length > 1 && minute < matchLength) {
-    minute++;
+  while (getAlivePlayers().length > 1 && elapsedSeconds < matchLength * 60) {
+    elapsedSeconds++;
     const alivePlayersNow = getAlivePlayers().length;
-    const targetPlayers = Math.max(1, Math.round(targetAlive(minute, curve, matchLength, totalPlayers)));
+    const matchMinute = elapsedSeconds / 60;
+    const targetPlayers = Math.max(1, Math.round(targetAlive(matchMinute, curve, matchLength, totalPlayers)));
 
     // Aproxima a quantidade de eliminações desejada para este minuto.
     // A unidade real da simulação continua sendo o confronto entre equipes.
-    let desiredElims = Math.round(alivePlayersNow - targetPlayers) + randInt(-1, 1);
-    desiredElims = Math.max(1, desiredElims);
+    let desiredElims = Math.round(alivePlayersNow - targetPlayers) + (Math.random() < 0.08 ? randInt(-1, 1) : 0);
+    desiredElims = Math.max(0, desiredElims);
+    if (elapsedSeconds >= matchLength * 60) desiredElims = alivePlayersNow - 1;
     desiredElims = Math.min(desiredElims, Math.max(1, alivePlayersNow - 1));
 
     const events = [];
@@ -398,11 +435,11 @@ function simulateMatch(playerIds, teams, params) {
 
         if (killerId) killsCount[killerId]++;
         teamAliveCount[loser.id]--;
-        eliminationOrder.push({ id: victimId, minute, killerId, teamId: loser.id });
+        eliminationOrder.push({ id: victimId, minute: matchMinute, killerId, teamId: loser.id });
         events.push({ victimId, killerId, teamId: loser.id });
 
         if (teamAliveCount[loser.id] === 0) {
-          teamEliminationOrder.push({ teamId: loser.id, minute });
+          teamEliminationOrder.push({ teamId: loser.id, minute: matchMinute });
           break;
         }
       }
@@ -410,7 +447,7 @@ function simulateMatch(playerIds, teams, params) {
 
     // Se houver pouquíssimas equipes, garantimos que a partida continue
     // progredindo sem transformar todos os sobreviventes em solos aleatórios.
-    if (!events.length && getAlivePlayers().length > 1) {
+    if (!events.length && getAlivePlayers().length > 1 && elapsedSeconds >= matchLength * 60) {
       const battleTeams = getAliveTeams();
       if (battleTeams.length > 1) {
         const a = weightedPick(battleTeams, (team) => 1 / Math.pow(aliveByTeam[team.id].length, 0.55));
@@ -423,9 +460,9 @@ function simulateMatch(playerIds, teams, params) {
         const killerId = pickKillerId(winnerAlive);
         if (killerId) killsCount[killerId]++;
         teamAliveCount[loser.id]--;
-        eliminationOrder.push({ id: victimId, minute, killerId, teamId: loser.id });
+        eliminationOrder.push({ id: victimId, minute: matchMinute, killerId, teamId: loser.id });
         events.push({ victimId, killerId, teamId: loser.id });
-        if (teamAliveCount[loser.id] === 0) teamEliminationOrder.push({ teamId: loser.id, minute });
+        if (teamAliveCount[loser.id] === 0) teamEliminationOrder.push({ teamId: loser.id, minute: matchMinute });
       }
     }
 
@@ -437,8 +474,9 @@ function simulateMatch(playerIds, teams, params) {
       thPointer++;
     }
     timeline.push({
-      minute,
-      phase: phaseLabel(minute, endgameStart),
+      second: elapsedSeconds,
+      minute: matchMinute,
+      phase: phaseLabel(matchMinute, endgameStart),
       events,
       milestones,
       aliveAfter: alivePlayersAfter.length,
@@ -448,7 +486,8 @@ function simulateMatch(playerIds, teams, params) {
 
   // Endgame: sempre através de confrontos entre as equipes restantes.
   while (getAliveTeams().length > 1) {
-    minute++;
+    elapsedSeconds++;
+    const matchMinute = elapsedSeconds / 60;
     const battleTeams = getAliveTeams();
     const a = battleTeams.slice().sort((x, y) => teamStrength(y) - teamStrength(x))[0];
     const b = weightedPick(battleTeams.filter((t) => t.id !== a.id), (team) => 1 / Math.pow(aliveByTeam[team.id].length, 0.55));
@@ -465,13 +504,13 @@ function simulateMatch(playerIds, teams, params) {
       const killerId = pickKillerId(winnerAlive);
       if (killerId) killsCount[killerId]++;
       teamAliveCount[loser.id]--;
-      eliminationOrder.push({ id: victimId, minute, killerId, teamId: loser.id });
+      eliminationOrder.push({ id: victimId, minute: matchMinute, killerId, teamId: loser.id });
       events.push({ victimId, killerId, teamId: loser.id });
     }
 
-    if (teamAliveCount[loser.id] === 0) teamEliminationOrder.push({ teamId: loser.id, minute });
+    if (teamAliveCount[loser.id] === 0) teamEliminationOrder.push({ teamId: loser.id, minute: matchMinute });
     const aliveTeamIds = new Set(getAliveTeams().map((t) => t.id));
-    timeline.push({ minute, phase: "ENDGAME", events, milestones: [], aliveAfter: getAlivePlayers().length, teamsAliveAfter: aliveTeamIds.size });
+    timeline.push({ second: elapsedSeconds, minute: matchMinute, phase: "ENDGAME", events, milestones: [], aliveAfter: getAlivePlayers().length, teamsAliveAfter: aliveTeamIds.size });
   }
 
   // Última equipe: seus integrantes continuam juntos até o fim. O campeão é
@@ -504,14 +543,14 @@ function simulateMatch(playerIds, teams, params) {
     };
   });
   const memberResults = teamResults.flatMap((t) => t.members.map((m) => ({ ...m, teamName: t.name, teamPoints: t.points })));
-  return { timeline, results: teamResults, memberResults, durationMinutes: minute };
+  return { timeline, results: teamResults, memberResults, durationMinutes: elapsedSeconds / 60 };
 }
 
 // tabela ao vivo: no modo em equipe, a classificação mostra as equipes.
 function buildLiveTable(current, revealedCount, teams, playersById, placementPointsFn, killPoints) {
   const teamCount = teams.length;
   if (!current || revealedCount === 0) {
-    return teams.map((team) => ({ id: team.id, name: team.name, hue: team.hue, memberIds: team.memberIds, alive: true, champion: false, kills: 0, points: 0, placement: null }));
+    return teams.map((team) => ({ id: team.id, name: team.name, hue: team.hue, memberIds: team.memberIds, aliveMembers: team.memberIds, alive: true, champion: false, kills: 0, points: 0, placement: null }));
   }
 
   const killsSoFar = {};
@@ -544,6 +583,7 @@ function buildLiveTable(current, revealedCount, teams, playersById, placementPoi
     const teamPlacement = teamCount - i;
     return {
       id: r.team.id, name: r.team.name, hue: r.team.hue, memberIds: r.team.memberIds,
+      aliveMembers: r.aliveMembers,
       alive: false, champion: false, kills: r.kills,
       placement: teamPlacement, points: placementPointsFn(teamPlacement) + r.kills * killPoints,
       lastEliminatedMember: lastElim,
@@ -553,6 +593,7 @@ function buildLiveTable(current, revealedCount, teams, playersById, placementPoi
   const livePlacementPoints = placementPointsFn(aliveTeams.length);
   const aliveRows = aliveTeams.map((r) => ({
     id: r.team.id, name: r.team.name, hue: r.team.hue, memberIds: r.team.memberIds,
+    aliveMembers: r.aliveMembers,
     alive: true, champion: false, kills: r.kills, points: livePlacementPoints + r.kills * killPoints, placement: null,
   })).sort((a, b) => b.points - a.points || b.kills - a.kills);
 
@@ -744,12 +785,17 @@ function PlayerModal({ player, matchesData, onClose }) {
    em modo dupla/trio/esquadrão). Mostra as estatísticas da equipe já SOMADAS (pontos e kills dos
    dois/três/quatro integrantes juntos) — antes o clique abria só o jogador em memberIds[0].
    =================================================================================== */
-function TeamStandingsModal({ team, matchesData, playersById, currentIdx, currentRev, onClose }) {
+function TeamStandingsModal({ team, matchesData, playersById, currentIdx, currentRev, liveTableRows, onClose }) {
   const rows = [];
   matchesData.forEach((m, idx) => {
     if (!m) return;
     const isCurrentLiveMatch = idx === currentIdx && currentRev < m.timeline.length;
-    if (isCurrentLiveMatch) return;
+    if (isCurrentLiveMatch) {
+      const liveRow = liveTableRows?.find((r) => r.id === team.id);
+      if (liveRow?.alive !== false) return;
+      rows.push({ match: idx + 1, place: liveRow.placement, kills: liveRow.kills, points: liveRow.points });
+      return;
+    }
     const r = m.results?.find((x) => x.id === team.id);
     if (r) rows.push({ match: idx + 1, place: r.place, kills: r.kills, points: r.points });
   });
@@ -1002,7 +1048,7 @@ function LiveStatusDot({ alive }) {
 }
 
 /* ============================== STANDINGS SIDEBAR ============================== */
-function Standings({ standings, scope, scopeOptions, scopeLabel, onScopeChange, completedInScope, totalInScope, onSelect, onExpand, onHistory, liveAliveById, liveMatchNumber }) {
+function Standings({ standings, liveMemberStatusByTeam, scope, scopeOptions, scopeLabel, onScopeChange, completedInScope, totalInScope, onSelect, onExpand, onHistory, liveAliveById, liveMatchNumber }) {
   const [q, setQ] = useState("");
   const filtered = q ? standings.filter((p) => p.name.toLowerCase().includes(q.toLowerCase())) : standings;
 
@@ -1060,7 +1106,12 @@ function Standings({ standings, scope, scopeOptions, scopeLabel, onScopeChange, 
               <div style={{ width: 20, textAlign: "center", fontFamily: "Teko, sans-serif", fontSize: 16, color: rank === 1 ? C.gold : rank <= 3 ? C.purple : C.dim }}>{rank}</div>
               <Avatar name={p.name} hue={p.hue} size={24} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "Rajdhani, sans-serif", fontWeight: 600, color: isAliveNow === false ? C.dim2 : C.text, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</div>
+                <div style={{ fontFamily: "Rajdhani, sans-serif", fontWeight: 600, color: isAliveNow === false ? C.dim2 : C.text, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {(p.memberIds || [p.id]).map((memberId, index) => {
+                    const memberAlive = liveMemberStatusByTeam?.[p.id]?.includes(memberId) ?? true;
+                    return <span key={memberId} style={{ color: isAliveNow === false || !memberAlive ? C.dim2 : C.text }}>{index > 0 ? " + " : ""}{p.name.split(" + ")[index] || p.name}</span>;
+                  })}
+                </div>
               </div>
               {p.wins > 0 && <div style={{ display: "flex", alignItems: "center", gap: 2, color: C.gold, fontSize: 11, fontFamily: "Rajdhani, sans-serif" }}><Crown size={10} />{p.wins}</div>}
               {isAliveNow !== null && <LiveStatusDot alive={isAliveNow} />}
@@ -1568,6 +1619,7 @@ export default function App() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [selectedStandingsTeam, setSelectedStandingsTeam] = useState(null);
+  const [showEliminationHistory, setShowEliminationHistory] = useState(false);
   // Usado nas tabelas de classificação: se a linha for uma equipe com mais de um
   // integrante, abre o modal com TODOS os integrantes; senão (modo solo), abre o jogador direto.
   function openStandingsRow(p) {
@@ -1579,9 +1631,25 @@ export default function App() {
   const [tab, setTab] = useState("simulador");
   const [showFullStandings, setShowFullStandings] = useState(false);
   const [showStandingsHistory, setShowStandingsHistory] = useState(false);
+  const [standingsWidth, setStandingsWidth] = useState(280);
+  const [isResizing, setIsResizing] = useState(false);
   const [standingsScope, setStandingsScope] = useState("total");
   const [showSaved, setShowSaved] = useState(false);
   const intervalRef = useRef(null);
+
+  useEffect(() => {
+    if (!isResizing) return undefined;
+    const handlePointerMove = (event) => {
+      setStandingsWidth(Math.min(520, Math.max(220, event.clientX)));
+    };
+    const stopResizing = () => setIsResizing(false);
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResizing);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResizing);
+    };
+  }, [isResizing]);
 
   /* ============================== PERSISTÊNCIA (auto-save + saves com nome) ==============================
      Usa localStorage do navegador. Funciona no seu próprio site/hospedagem normalmente — cada domínio tem
@@ -1934,24 +2002,34 @@ export default function App() {
   const phase = curMinuteEntry ? curMinuteEntry.phase : "Aguardando início";
 
   const chartData = useMemo(() => {
-    if (!current) return [{ minute: 0, alive: config.totalPlayers }];
-    const d = [{ minute: 0, alive: config.totalPlayers }];
-    for (let i = 0; i < currentRev; i++) d.push({ minute: current.timeline[i].minute, alive: current.timeline[i].aliveAfter });
+    if (!current) return [{ second: 0, alive: config.totalPlayers }];
+    const d = [{ second: 0, alive: config.totalPlayers }];
+    for (let i = 0; i < currentRev; i++) d.push({ second: current.timeline[i].second, alive: current.timeline[i].aliveAfter });
     return d;
   }, [current, currentRev, config.totalPlayers]);
 
-  const feed = useMemo(() => {
+  const allFeed = useMemo(() => {
     if (!current) return [];
     const items = [];
     for (let i = 0; i < currentRev; i++) {
       const t = current.timeline[i];
-      t.milestones.forEach((ms) => items.push({ type: "milestone", minute: t.minute, value: ms }));
-      t.events.forEach((ev) => items.push({ type: "kill", minute: t.minute, ...ev }));
+      t.milestones.forEach((ms) => items.push({ type: "milestone", second: t.second, value: ms }));
+      t.events.forEach((ev) => items.push({ type: "kill", second: t.second, ...ev }));
     }
-    return items.reverse().slice(0, 8);
+    return items;
   }, [current, currentRev]);
+  const feed = useMemo(() => allFeed.slice().reverse().slice(0, 8), [allFeed]);
 
-  const liveTableRows = useMemo(() => buildLiveTable(current, currentRev, teams, playersById, placementPointsFn, config.killPoints), [current, currentRev, teams, playersById, placementPointsFn, config.killPoints]);
+  const liveTableRows = useMemo(() => {
+    const rows = buildLiveTable(current, currentRev, teams, playersById, placementPointsFn, config.killPoints);
+    if (!current || status !== "finished") return rows;
+    const resultById = Object.fromEntries(current.results.map((result) => [result.id, result]));
+    return rows.map((row) => {
+      const result = resultById[row.id];
+      return result ? { ...row, ...result, placement: result.place, alive: false } : row;
+    });
+  }, [current, currentRev, teams, playersById, placementPointsFn, config.killPoints, status]);
+  const liveMemberStatusByTeam = useMemo(() => Object.fromEntries(liveTableRows.map((row) => [row.id, row.aliveMembers || row.memberIds])), [liveTableRows]);
 
   // Mapa id -> vivo/morto NA PARTIDA QUE ESTÁ SENDO ASSISTIDA AGORA (status === "live").
   const liveAliveById = useMemo(() => {
@@ -1964,6 +2042,7 @@ export default function App() {
   const liveOverlay = useMemo(() => (status === "live" ? { idx: currentIdx, rows: liveTableRows } : null), [status, currentIdx, liveTableRows]);
 
   const allDone = matchDone.length > 0 && matchDone.every(Boolean);
+  const speedMultiplier = Math.min(100, Math.max(1, Math.round(1100 / speed)));
 
   const totalStandings = useMemo(() => computeStandings(teams, players, matchesData, matchDone, allIndices, liveOverlay), [teams, players, matchesData, matchDone, allIndices, liveOverlay]);
 
@@ -2012,6 +2091,7 @@ export default function App() {
           .dayNav { padding: 8px 12px !important; }
           .mainLayout { display: block !important; }
           .standingsPanel { width: 100% !important; height: 330px !important; border-right: none !important; border-bottom: 1px solid ${C.line}; }
+          .layoutDivider { display: none !important; }
           .mainContent { min-height: 620px; overflow: visible !important; }
           .simulatorView { padding: 12px 10px 0 !important; }
           .matchSummary { gap: 10px !important; }
@@ -2031,7 +2111,8 @@ export default function App() {
 
       {selectedPlayer && <PlayerModal player={selectedPlayer} matchesData={matchesData} onClose={() => setSelectedPlayer(null)} />}
       {selectedTeam && <TeamModal team={selectedTeam} current={current} currentRev={currentRev} playersById={playersById} onClose={() => setSelectedTeam(null)} />}
-      {selectedStandingsTeam && <TeamStandingsModal team={selectedStandingsTeam} matchesData={matchesData} playersById={playersById} currentIdx={currentIdx} currentRev={currentRev} onClose={() => setSelectedStandingsTeam(null)} />}
+      {selectedStandingsTeam && <TeamStandingsModal team={selectedStandingsTeam} matchesData={matchesData} playersById={playersById} currentIdx={currentIdx} currentRev={currentRev} liveTableRows={liveTableRows} onClose={() => setSelectedStandingsTeam(null)} />}
+      {showEliminationHistory && <EliminationHistoryModal items={allFeed} matchNumber={currentIdx + 1} playersById={playersById} onSelectPlayer={setSelectedPlayer} onClose={() => setShowEliminationHistory(false)} />}
 
       {showFullStandings && (
         <FullStandingsModal
@@ -2180,9 +2261,10 @@ export default function App() {
 
       {/* MAIN */}
       <div className="mainLayout" style={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <div className="standingsPanel" style={{ width: 280, borderRight: `1px solid ${C.line}`, background: C.panel, minHeight: 0, flexShrink: 0 }}>
+        <div className="standingsPanel" style={{ width: standingsWidth, borderRight: `1px solid ${C.line}`, background: C.panel, minHeight: 0, flexShrink: 0 }}>
           <Standings
             standings={scopedStandings}
+            liveMemberStatusByTeam={liveMemberStatusByTeam}
             scope={standingsScope}
             scopeOptions={scopeOptions}
             scopeLabel={scopeLabel}
@@ -2196,6 +2278,8 @@ export default function App() {
             liveMatchNumber={currentIdx + 1}
           />
         </div>
+
+        <div className="layoutDivider" onPointerDown={(event) => { event.preventDefault(); setIsResizing(true); }} title="Arraste para ajustar a largura" style={{ width: 8, flexShrink: 0, cursor: "col-resize", background: isResizing ? C.purple : C.line, opacity: isResizing ? 0.9 : 0.55, transition: "background 0.15s ease", touchAction: "none" }} />
 
         <div className="mainContent" style={{ flex: 1, minHeight: 0, overflowY: tab === "simulador" ? "hidden" : "auto", display: "flex", flexDirection: "column" }}>
           {tab === "premiacao" && <PremiacaoTab totalPlayers={config.totalPlayers} killPoints={config.killPoints} scoringBands={scoringBands} placementPointsFn={placementPointsFn} />}
@@ -2270,7 +2354,7 @@ export default function App() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontFamily: "Teko, sans-serif", fontSize: 38, lineHeight: 1 }}>MINUTO {curMinuteEntry ? curMinuteEntry.minute : 0}<span style={{ fontSize: 18, color: C.dim2 }}> / {config.matchLengthMinutes}</span></div>
+                  <div style={{ fontFamily: "Teko, sans-serif", fontSize: 38, lineHeight: 1 }}>{formatMatchTime(curMinuteEntry?.second)}<span style={{ fontSize: 18, color: C.dim2 }}> / {formatMatchTime(config.matchLengthMinutes * 60)}</span></div>
                   <div style={{ height: 58, marginTop: 4 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={chartData}>
@@ -2280,9 +2364,9 @@ export default function App() {
                             <stop offset="100%" stopColor={C.purple} stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <XAxis dataKey="minute" hide />
+                        <XAxis dataKey="second" hide />
                         <YAxis hide domain={[0, config.totalPlayers]} />
-                        <Tooltip contentStyle={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 8, fontFamily: "Rajdhani, sans-serif" }} labelFormatter={(m) => `Minuto ${m}`} formatter={(v) => [v, "vivos"]} />
+                        <Tooltip contentStyle={{ background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 8, fontFamily: "Rajdhani, sans-serif" }} labelFormatter={(seconds) => formatMatchTime(seconds)} formatter={(v) => [v, "vivos"]} />
                         <Area type="monotone" dataKey="alive" stroke={C.purple} strokeWidth={2} fill="url(#aliveFill)" />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -2296,28 +2380,31 @@ export default function App() {
                     background: isPlaying ? C.panel2 : `linear-gradient(135deg, ${C.purple}, #5B3FE0)`, border: `1px solid ${isPlaying ? C.line : "transparent"}`,
                     color: "#fff", padding: "8px 15px", borderRadius: 9, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "Rajdhani, sans-serif", fontSize: 13,
                   }}>{isPlaying ? <><Pause size={14} /> Pausar</> : <><Play size={14} /> Reproduzir</>}</button>
-                  <button onClick={stepMinute} style={{ background: C.panel2, border: `1px solid ${C.line}`, color: C.text, padding: "8px 13px", borderRadius: 9, fontWeight: 700, cursor: "pointer", fontFamily: "Rajdhani, sans-serif", fontSize: 12.5 }}>+1 Minuto</button>
                   <button onClick={skipToEnd} style={{ background: C.panel2, border: `1px solid ${C.line}`, color: C.dim, padding: "8px 13px", borderRadius: 9, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: "Rajdhani, sans-serif", fontSize: 12.5 }}><SkipForward size={13} /> Pular para o fim</button>
-                  <div style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
-                    {[["1x", 1100], ["2x", 550], ["4x", 260]].map(([label, ms]) => (
-                      <button key={label} onClick={() => setSpeed(ms)} style={{
-                        background: speed === ms ? "rgba(139,108,255,0.2)" : "transparent", border: `1px solid ${speed === ms ? C.purple : C.line}`,
-                        color: speed === ms ? C.purple : C.dim, padding: "6px 10px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "Rajdhani, sans-serif",
-                      }}>{label}</button>
-                    ))}
+                  <div className="speedControl" style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", minWidth: 210 }}>
+                    <span style={{ color: C.dim, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>VELOCIDADE</span>
+                    <input type="range" min="1" max="100" step="1" value={speedMultiplier} onChange={(e) => setSpeed(1100 / Number(e.target.value))} style={{ flex: 1, minWidth: 80, accentColor: C.purple }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
+                      <input type="number" min="1" max="100" step="1" value={speedMultiplier} onChange={(e) => { const multiplier = Math.min(100, Math.max(1, Number(e.target.value) || 1)); setSpeed(1100 / multiplier); }} aria-label="Multiplicador de velocidade" style={{ width: 54, background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 7, padding: "5px 6px", color: C.purple, fontFamily: "Teko, sans-serif", fontSize: 19, textAlign: "right", outline: "none" }} />
+                      <span style={{ color: C.purple, fontFamily: "Teko, sans-serif", fontSize: 19 }}>x</span>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {status === "live" && feed.length > 0 && (
+              {feed.length > 0 && (
                 <div className="feedPanel" style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 10, flexShrink: 0, maxHeight: 78, overflowY: "auto", background: C.panel, border: `1px solid ${C.line}`, borderRadius: 10, padding: "4px 10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingBottom: 3, borderBottom: `1px solid ${C.line}` }}>
+                    <span style={{ color: C.dim, fontSize: 11, fontWeight: 700 }}>ELIMINAÇÕES RECENTES</span>
+                    <button onClick={() => setShowEliminationHistory(true)} style={{ background: "transparent", border: "none", color: C.purple, cursor: "pointer", fontFamily: "Rajdhani, sans-serif", fontSize: 11, fontWeight: 700, padding: "3px 0" }}>VER HISTÓRICO COMPLETO</button>
+                  </div>
                   {feed.map((it, i) => it.type === "milestone" ? (
                     <div key={i} className="feedItem" style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", color: C.gold, fontWeight: 700, fontSize: 12 }}>
                       <Zap size={12} /> TOP {it.value} JOGADORES{it.value <= 5 ? " — TENSÃO MÁXIMA" : ""}
                     </div>
                   ) : (
                     <div key={i} className="feedItem" style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", fontSize: 12.5 }}>
-                      <span style={{ color: C.dim2, width: 30, fontSize: 10.5 }}>Min {it.minute}</span>
+                      <span style={{ color: C.dim2, width: 38, fontSize: 10.5 }}>{formatMatchTime(it.second)}</span>
                       {it.killerId ? <Swords size={12} color={C.red} /> : <Wind size={12} color={C.purple} />}
                       {it.killerId && <span onClick={() => setSelectedPlayer(playersById[it.killerId])} style={{ fontWeight: 700, cursor: "pointer" }}>{playersById[it.killerId].name}</span>}
                       <span style={{ color: C.dim }}>{it.killerId ? "eliminou" : "eliminado pela tempestade —"}</span>
