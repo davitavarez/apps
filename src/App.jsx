@@ -683,7 +683,7 @@ function TeamModal({ team, current, currentRev, playersById, onClose }) {
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(5,6,10,0.78)", backdropFilter: "blur(3px)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 55, padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 120, padding: 16,
     }}>
       <div className="fullModal" onClick={(e) => e.stopPropagation()} style={{
         background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, width: "100%",
@@ -742,7 +742,7 @@ function PlayerModal({ player, matchesData, onClose }) {
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(5,6,10,0.75)", backdropFilter: "blur(3px)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, width: "100%",
@@ -808,17 +808,17 @@ function TeamStandingsModal({ team, matchesData, playersById, currentIdx, curren
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(5,6,10,0.75)", backdropFilter: "blur(3px)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 130, padding: 16,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
         background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, width: "100%",
-        maxWidth: 520, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden",
+        maxWidth: 560, maxHeight: "85vh", display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         <div style={{ padding: "18px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 12 }}>
           <Avatar name={team.name} hue={team.hue} size={44} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "Rajdhani, sans-serif", fontWeight: 700, fontSize: 20, color: C.text }}>{team.name}</div>
-            <div style={{ fontFamily: "Rajdhani, sans-serif", color: C.dim, fontSize: 13 }}>
+            <div style={{ fontFamily: "Rajdhani, sans-serif", fontWeight: 700, fontSize: 22, color: C.text }}>{team.name}</div>
+            <div style={{ fontFamily: "Rajdhani, sans-serif", color: C.dim, fontSize: 14 }}>
               Equipe ({members.length} jogador{members.length !== 1 ? "es" : ""}) · {rows.length} partida{rows.length !== 1 ? "s" : ""} jogada{rows.length !== 1 ? "s" : ""}
             </div>
           </div>
@@ -949,47 +949,47 @@ function FullStandingsModal({ standings, scope, scopeOptions, scopeLabel, onScop
   return (
     <div onClick={onClose} style={{
       position: "fixed", inset: 0, background: "rgba(5,6,10,0.8)", backdropFilter: "blur(3px)",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 55, padding: 16,
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 110, padding: 12,
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, width: "100%",
-        maxWidth: 980, height: "min(88vh, 760px)", display: "flex", flexDirection: "column", overflow: "hidden",
+        background: C.panel, border: `1px solid ${C.line}`, borderRadius: 20, width: "100%",
+        maxWidth: 1380, height: "min(95vh, 950px)", display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
-        <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <Trophy size={18} color={C.gold} />
-          <div style={{ fontFamily: "Teko, sans-serif", fontSize: 24, letterSpacing: "0.5px" }}>TABELA — {scopeLabel.toUpperCase()}</div>
-          <div style={{ width: 220 }}><ScopeToggle scope={scope} onChange={onScopeChange} options={scopeOptions} /></div>
+        <div style={{ padding: "20px 28px", borderBottom: `1px solid ${C.line}`, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <Trophy size={28} color={C.gold} />
+          <div style={{ fontFamily: "Teko, sans-serif", fontSize: 42, letterSpacing: "0.8px" }}>TABELA — {scopeLabel.toUpperCase()}</div>
+          <div style={{ width: 260 }}><ScopeToggle scope={scope} onChange={onScopeChange} options={scopeOptions} /></div>
           {liveAliveById && (
             <span style={{
-              display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 7,
+              display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 14px", borderRadius: 9,
               background: "rgba(49,230,198,0.1)", border: `1px solid rgba(49,230,198,0.3)`,
-              fontFamily: "Rajdhani, sans-serif", fontSize: 11.5, fontWeight: 700, color: C.cyan, whiteSpace: "nowrap",
+              fontFamily: "Rajdhani, sans-serif", fontSize: 14, fontWeight: 700, color: C.cyan, whiteSpace: "nowrap",
             }}><LiveStatusDot alive={true} /> Partida {liveMatchNumber} ao vivo</span>
           )}
           <div style={{ position: "relative", marginLeft: "auto" }}>
-            <Search size={14} color={C.dim} style={{ position: "absolute", left: 9, top: 9 }} />
+            <Search size={16} color={C.dim} style={{ position: "absolute", left: 11, top: 13 }} />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar equipe..." style={{
-              background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 8, width: 200,
-              padding: "7px 10px 7px 30px", color: C.text, fontFamily: "Rajdhani, sans-serif", fontSize: 13, outline: "none",
+              background: C.panel2, border: `1px solid ${C.line}`, borderRadius: 10, width: 260,
+              padding: "10px 14px 10px 36px", color: C.text, fontFamily: "Rajdhani, sans-serif", fontSize: 15, outline: "none",
             }} />
           </div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer" }}><X size={20} /></button>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer" }}><X size={24} /></button>
         </div>
         <div style={{ overflow: "auto", flex: 1 }}>
           <table className="modalTable" style={{ width: "100%", borderCollapse: "collapse", fontFamily: "Rajdhani, sans-serif" }}>
             <thead>
               <tr style={{ position: "sticky", top: 0, background: C.panel, zIndex: 1 }}>
-                <th style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: C.dim2, textTransform: "uppercase", letterSpacing: "1px", borderBottom: `1px solid ${C.line}` }}>#</th>
-                <th style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: C.dim2, textTransform: "uppercase", letterSpacing: "1px", borderBottom: `1px solid ${C.line}` }}>Jogador</th>
+                <th style={{ textAlign: "left", padding: "14px 16px", fontSize: 14, fontWeight: 700, color: C.dim2, textTransform: "uppercase", letterSpacing: "1.5px", borderBottom: `1px solid ${C.line}` }}>#</th>
+                <th style={{ textAlign: "left", padding: "14px 16px", fontSize: 14, fontWeight: 700, color: C.dim2, textTransform: "uppercase", letterSpacing: "1.5px", borderBottom: `1px solid ${C.line}` }}>Jogador</th>
                 {liveAliveById && (
-                  <th style={{ textAlign: "center", padding: "8px 10px", fontSize: 11, color: C.dim2, textTransform: "uppercase", letterSpacing: "1px", borderBottom: `1px solid ${C.line}`, whiteSpace: "nowrap" }}>Nesta partida</th>
+                  <th style={{ textAlign: "center", padding: "14px 16px", fontSize: 14, fontWeight: 700, color: C.dim2, textTransform: "uppercase", letterSpacing: "1.5px", borderBottom: `1px solid ${C.line}`, whiteSpace: "nowrap" }}>Nesta partida</th>
                 )}
                 {cols.map((c) => (
                   <th key={c.key} onClick={() => toggleSort(c.key)} style={{
-                    textAlign: "right", padding: "8px 10px", fontSize: 11, color: sortKey === c.key ? C.purple : C.dim2,
-                    textTransform: "uppercase", letterSpacing: "1px", borderBottom: `1px solid ${C.line}`, cursor: "pointer", whiteSpace: "nowrap",
+                    textAlign: "right", padding: "14px 16px", fontSize: 14, fontWeight: 700, color: sortKey === c.key ? C.purple : C.dim2,
+                    textTransform: "uppercase", letterSpacing: "1.5px", borderBottom: `1px solid ${C.line}`, cursor: "pointer", whiteSpace: "nowrap",
                   }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>{c.label}<ArrowUpDown size={10} /></span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>{c.label}<ArrowUpDown size={12} /></span>
                   </th>
                 ))}
               </tr>
@@ -1002,25 +1002,25 @@ function FullStandingsModal({ standings, scope, scopeOptions, scopeLabel, onScop
                     onMouseEnter={(e) => (e.currentTarget.style.background = C.panel2)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <td style={{ padding: "7px 10px", fontFamily: "Teko, sans-serif", fontSize: 17, color: rank === 1 ? C.gold : rank <= 3 ? C.purple : C.dim }}>{rank}</td>
-                    <td style={{ padding: "7px 10px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Avatar name={p.name} hue={p.hue} size={24} />
-                        <span style={{ fontWeight: 600, fontSize: 13.5 }}>{p.name}</span>
+                    <td style={{ padding: "12px 16px", fontFamily: "Teko, sans-serif", fontSize: 28, color: rank === 1 ? C.gold : rank <= 3 ? C.purple : C.dim }}>{rank}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Avatar name={p.name} hue={p.hue} size={32} />
+                        <span style={{ fontWeight: 700, fontSize: 18 }}>{p.name}</span>
                       </div>
                     </td>
                     {liveAliveById && (
-                      <td style={{ padding: "7px 10px", textAlign: "center" }}>
+                      <td style={{ padding: "12px 16px", textAlign: "center" }}>
                         {liveAliveById[p.id] ? <LivePill /> : <DeadPill />}
                       </td>
                     )}
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontFamily: "Teko, sans-serif", fontSize: 18, color: C.gold }}>{p.points}</td>
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontSize: 13 }}>{p.played}</td>
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontSize: 13, color: p.wins > 0 ? C.gold : C.dim }}>{p.wins}</td>
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontSize: 13 }}>{p.top10}</td>
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontSize: 13, color: C.red }}>{p.kills}</td>
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontSize: 13 }}>{p.avgKills.toFixed(1)}</td>
-                    <td style={{ padding: "7px 10px", textAlign: "right", fontSize: 13 }}>{p.avgPlacement ? p.avgPlacement.toFixed(1) : "-"}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontFamily: "Teko, sans-serif", fontSize: 28, color: C.gold }}>{p.points}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 16 }}>{p.played}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 16, color: p.wins > 0 ? C.gold : C.dim }}>{p.wins}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 16 }}>{p.top10}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 16, color: C.red }}>{p.kills}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 16 }}>{p.avgKills.toFixed(1)}</td>
+                    <td style={{ padding: "12px 16px", textAlign: "right", fontSize: 16 }}>{p.avgPlacement ? p.avgPlacement.toFixed(1) : "-"}</td>
                   </tr>
                 );
               })}
@@ -1285,38 +1285,38 @@ function StandingsHistoryModal({ players, teamSize, matchesData, matchDone, tota
     return !q || p.name.toLowerCase().includes(q);
   }), [current, referenceRank, search]);
 
-  return <div style={{position:"fixed",inset:0,zIndex:80,background:"rgba(5,6,10,.88)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-    <div className="historyModal" style={{width:"min(1100px,96vw)",maxHeight:"90vh",background:C.panel,border:`1px solid ${C.line}`,borderRadius:12,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{padding:"14px 18px",borderBottom:`1px solid ${C.line}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div><div style={{fontFamily:"Teko,sans-serif",fontSize:28}}>HISTÓRICO DA CLASSIFICAÇÃO</div><div style={{fontSize:12,color:C.dim}}>Compare qualquer classificação com uma tabela de referência.</div></div>
-        <button onClick={onClose} style={{background:C.panel2,border:`1px solid ${C.line}`,color:C.text,borderRadius:7,padding:"7px 12px",cursor:"pointer",fontWeight:700}}>FECHAR</button>
+  return <div style={{position:"fixed",inset:0,zIndex:120,background:"rgba(5,6,10,.88)",display:"flex",alignItems:"center",justifyContent:"center",padding:12}}>
+    <div className="historyModal" style={{width:"min(1380px,96vw)",maxHeight:"95vh",background:C.panel,border:`1px solid ${C.line}`,borderRadius:20,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div style={{padding:"20px 28px",borderBottom:`1px solid ${C.line}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontFamily:"Teko,sans-serif",fontSize:48}}>HISTÓRICO DA CLASSIFICAÇÃO</div><div style={{fontSize:16,color:C.dim}}>Compare qualquer classificação com uma tabela de referência.</div></div>
+        <button onClick={onClose} style={{background:C.panel2,border:`1px solid ${C.line}`,color:C.text,borderRadius:9,padding:"9px 16px",cursor:"pointer",fontWeight:700,fontSize:15}}>FECHAR</button>
       </div>
-      <div style={{padding:"10px 18px",borderBottom:`1px solid ${C.line}`,display:"flex",gap:6,flexWrap:"wrap"}}>
-        {Array.from({length:totalMatches},(_,i)=> <button key={i} disabled={!matchDone[i]} onClick={()=>{if(matchDone[i]){setSelectedMatch(i);setSearch("");}}} style={{background:selectedMatch===i?C.purple:C.panel2,border:`1px solid ${selectedMatch===i?C.purple:C.line}`,color:matchDone[i]?C.text:C.dim2,borderRadius:6,padding:"5px 9px",cursor:matchDone[i]?"pointer":"not-allowed",fontWeight:700,fontSize:11}}>{i+1}</button>)}
+      <div style={{padding:"12px 28px",borderBottom:`1px solid ${C.line}`,display:"flex",gap:8,flexWrap:"wrap"}}>
+        {Array.from({length:totalMatches},(_,i)=> <button key={i} disabled={!matchDone[i]} onClick={()=>{if(matchDone[i]){setSelectedMatch(i);setSearch("");}}} style={{background:selectedMatch===i?C.purple:C.panel2,border:`1px solid ${selectedMatch===i?C.purple:C.line}`,color:matchDone[i]?C.text:C.dim2,borderRadius:8,padding:"8px 12px",cursor:matchDone[i]?"pointer":"not-allowed",fontWeight:700,fontSize:13}}>{i+1}</button>)}
       </div>
-      <div style={{padding:"10px 18px",borderBottom:`1px solid ${C.line}`,display:"flex",gap:8,flexWrap:"wrap"}}>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Pesquisar equipe..." style={{flex:"1 1 250px",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,padding:"8px 10px",color:C.text,outline:"none"}} />
-        <div style={{display:"flex",alignItems:"center",gap:6}}>
-          <span style={{fontSize:11,color:C.dim,fontWeight:700,whiteSpace:"nowrap"}}>TABELA DE REFERÊNCIA:</span>
-          <select value={referenceMatch == null ? "" : referenceMatch} disabled={selectedMatch === 0} onChange={e=>setReferenceMatch(e.target.value === "" ? null : Number(e.target.value))} style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:7,padding:"8px 10px",color:C.text}}>
+      <div style={{padding:"12px 28px",borderBottom:`1px solid ${C.line}`,display:"flex",gap:12,flexWrap:"wrap"}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Pesquisar equipe..." style={{flex:"1 1 300px",background:C.panel2,border:`1px solid ${C.line}`,borderRadius:9,padding:"12px 14px",color:C.text,outline:"none",fontSize:15}} />
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:14,color:C.dim,fontWeight:700,whiteSpace:"nowrap"}}>TABELA DE REFERÊNCIA:</span>
+          <select value={referenceMatch == null ? "" : referenceMatch} disabled={selectedMatch === 0} onChange={e=>setReferenceMatch(e.target.value === "" ? null : Number(e.target.value))} style={{background:C.panel2,border:`1px solid ${C.line}`,borderRadius:9,padding:"11px 14px",color:C.text,fontSize:15}}>
             {selectedMatch === 0 && <option value="">Nenhuma</option>}
             {Array.from({length:selectedMatch},(_,i)=>i).filter(i=>matchDone[i]).map(i=><option key={i} value={i}>Após a Partida {i+1}</option>)}
           </select>
         </div>
-        {search && <button onClick={()=>setSearch("")} style={{background:C.panel2,border:`1px solid ${C.line}`,color:C.dim,borderRadius:7,padding:"7px 10px",cursor:"pointer"}}>LIMPAR</button>}
+        {search && <button onClick={()=>setSearch("")} style={{background:C.panel2,border:`1px solid ${C.line}`,color:C.dim,borderRadius:9,padding:"10px 13px",cursor:"pointer",fontSize:14}}>LIMPAR</button>}
       </div>
-      <div style={{padding:"8px 18px",fontSize:12,color:C.dim}}>Partida {selectedMatch+1} · {rows.length} equipe(s){referenceMatch != null ? ` · MOV. calculado em relação à Partida ${referenceMatch+1}` : " · selecione uma tabela de referência para calcular o movimento"}</div>
-      <div style={{overflow:"auto",padding:"0 18px 18px"}}>
-        <table className="modalTable" style={{width:"100%",borderCollapse:"collapse"}}><thead><tr style={{position:"sticky",top:0,background:C.panel2}}>
-          {['#','JOGADOR','MOV.','PONTOS','PARTIDAS','WINS','TOP 10','KILLS'].map((h,i)=><th key={h} style={{padding:"9px 10px",textAlign:i<2?"left":"right",color:C.dim,fontSize:11}}>{h}</th>)}
+      <div style={{padding:"10px 28px",fontSize:15,color:C.dim}}>Partida {selectedMatch+1} · {rows.length} equipe(s){referenceMatch != null ? ` · MOV. calculado em relação à Partida ${referenceMatch+1}` : " · selecione uma tabela de referência para calcular o movimento"}</div>
+      <div style={{overflow:"auto",padding:"0 28px 28px"}}>
+        <table className="modalTable" style={{width:"100%",borderCollapse:"collapse",fontSize:16}}><thead><tr style={{position:"sticky",top:0,background:C.panel2}}>
+          {['#','JOGADOR','MOV.','PONTOS','PARTIDAS','WINS','TOP 10','KILLS'].map((h,i)=><th key={h} style={{padding:"14px 14px",textAlign:i<2?"left":"right",color:C.dim,fontSize:14,fontWeight:700,textTransform:"uppercase"}}>{h}</th>)}
         </tr></thead><tbody>
           {rows.map(p=><tr key={p.id} style={{borderTop:`1px solid ${C.line}`}}>
-            <td style={{padding:"7px 10px",fontFamily:"Teko,sans-serif",fontSize:20}}>{p.rank}</td>
-            <td onClick={()=>onSelect(p)} style={{padding:"7px 10px",fontWeight:700,cursor:"pointer"}}>{p.name}</td>
-            <td style={{padding:"7px 10px",textAlign:"right",fontWeight:800}}>{p.movement==null?<span style={{color:C.dim2}}>—</span>:p.movement>0?<span style={{color:C.cyan}}>↑ {p.movement}</span>:p.movement<0?<span style={{color:C.red}}>↓ {Math.abs(p.movement)}</span>:<span style={{color:C.dim}}>—</span>}</td>
-            <td style={{padding:"7px 10px",textAlign:"right",color:C.gold,fontFamily:"Teko,sans-serif",fontSize:19}}>{p.points}</td><td style={{padding:"7px 10px",textAlign:"right"}}>{p.played}</td><td style={{padding:"7px 10px",textAlign:"right"}}>{p.wins}</td><td style={{padding:"7px 10px",textAlign:"right"}}>{p.top10}</td><td style={{padding:"7px 10px",textAlign:"right",color:C.red}}>{p.kills}</td>
+            <td style={{padding:"12px 14px",fontFamily:"Teko,sans-serif",fontSize:28}}>{p.rank}</td>
+            <td onClick={()=>onSelect(p)} style={{padding:"12px 14px",fontWeight:700,cursor:"pointer",fontSize:18}}>{p.name}</td>
+            <td style={{padding:"12px 14px",textAlign:"right",fontWeight:800,fontSize:18}}>{p.movement==null?<span style={{color:C.dim2}}>—</span>:p.movement>0?<span style={{color:C.cyan}}>↑ {p.movement}</span>:p.movement<0?<span style={{color:C.red}}>↓ {Math.abs(p.movement)}</span>:<span style={{color:C.dim}}>—</span>}</td>
+            <td style={{padding:"12px 14px",textAlign:"right",color:C.gold,fontFamily:"Teko,sans-serif",fontSize:28}}>{p.points}</td><td style={{padding:"12px 14px",textAlign:"right",fontSize:16}}>{p.played}</td><td style={{padding:"12px 14px",textAlign:"right",fontSize:16}}>{p.wins}</td><td style={{padding:"12px 14px",textAlign:"right",fontSize:16}}>{p.top10}</td><td style={{padding:"12px 14px",textAlign:"right",color:C.red,fontSize:16}}>{p.kills}</td>
           </tr>)}
-          {!rows.length && <tr><td colSpan={8} style={{padding:35,textAlign:"center",color:C.dim}}>Nenhum jogador encontrado.</td></tr>}
+          {!rows.length && <tr><td colSpan={8} style={{padding:40,textAlign:"center",color:C.dim,fontSize:16}}>Nenhum jogador encontrado.</td></tr>}
         </tbody></table>
       </div>
     </div>
