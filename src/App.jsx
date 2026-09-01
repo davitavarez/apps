@@ -658,7 +658,7 @@ function DeadPill() {
 }
 
 /* ============================== TEAM MODAL ============================== */
-function TeamModal({ team, current, currentRev, playersById, onClose }) {
+function TeamModal({ team, current, currentRev, playersById, liveTableRows, onClose }) {
   const deathMap = {};
   const killsMap = {};
   if (current) {
@@ -672,6 +672,9 @@ function TeamModal({ team, current, currentRev, playersById, onClose }) {
       });
     }
   }
+
+  const liveRow = liveTableRows?.find((r) => r.id === team.id);
+  const currentKills = liveRow ? liveRow.kills : current?.results?.find((r) => r.id === team.id)?.kills || 0;
 
   const memberStats = team.memberIds.map((id) => {
     const player = playersById[id];
@@ -701,7 +704,7 @@ function TeamModal({ team, current, currentRev, playersById, onClose }) {
         </div>
 
         <div style={{ padding: "12px 20px", borderBottom: `1px solid ${C.line}`, display: "flex", gap: 18 }}>
-          <div><div style={{ fontFamily: "Teko, sans-serif", fontSize: 26, color: C.gold }}>{current?.results?.find((r) => r.id === team.id)?.kills || 0}</div><div style={{ color: C.dim, fontSize: 10, textTransform: "uppercase" }}>kills da equipe</div></div>
+          <div><div style={{ fontFamily: "Teko, sans-serif", fontSize: 26, color: C.gold }}>{currentKills}</div><div style={{ color: C.dim, fontSize: 10, textTransform: "uppercase" }}>kills da equipe</div></div>
           <div><div style={{ fontFamily: "Teko, sans-serif", fontSize: 26, color: C.cyan }}>{memberStats.filter((m) => !m.death).length}</div><div style={{ color: C.dim, fontSize: 10, textTransform: "uppercase" }}>jogadores vivos</div></div>
           <div><div style={{ fontFamily: "Teko, sans-serif", fontSize: 26, color: C.purple }}>{memberStats.filter((m) => m.death).length}</div><div style={{ color: C.dim, fontSize: 10, textTransform: "uppercase" }}>eliminados</div></div>
         </div>
@@ -727,12 +730,19 @@ function TeamModal({ team, current, currentRev, playersById, onClose }) {
 }
 
 /* ============================== PLAYER MODAL ============================== */
-function PlayerModal({ player, matchesData, onClose }) {
+function PlayerModal({ player, matchesData, currentIdx, currentRev, status, onClose }) {
   const rows = [];
   matchesData.forEach((m, idx) => {
     if (!m) return;
+    // A partida atual só entra no histórico depois que este jogador é eliminado.
+    // Quem ainda está vivo continua sem ter um resultado antecipado.
+    const isCurrentLiveMatch = status === "live" && idx === currentIdx;
+    const wasEliminated = isCurrentLiveMatch && m.timeline
+      ?.slice(0, currentRev)
+      .some((entry) => entry.events.some((event) => event.victimId === player.id));
+    if (isCurrentLiveMatch && !wasEliminated) return;
     const r = m.memberResults?.find((x) => x.id === player.id);
-    if (r) rows.push({ match: idx + 1, ...r });
+    if (r) rows.push({ match: idx + 1, currentMatch: isCurrentLiveMatch, ...r });
   });
   const totalPts = rows.reduce((s, r) => s + (r.teamPoints ?? 0), 0);
   const totalKills = rows.reduce((s, r) => s + r.kills, 0);
@@ -752,7 +762,9 @@ function PlayerModal({ player, matchesData, onClose }) {
           <Avatar name={player.name} hue={player.hue} size={44} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "Rajdhani, sans-serif", fontWeight: 700, fontSize: 20, color: C.text }}>{player.name}</div>
-            <div style={{ fontFamily: "Rajdhani, sans-serif", color: C.dim, fontSize: 13 }}>{rows.length} partida{rows.length !== 1 ? "s" : ""} jogada{rows.length !== 1 ? "s" : ""}</div>
+            <div style={{ fontFamily: "Rajdhani, sans-serif", color: C.dim, fontSize: 13 }}>
+              {status === "live" && currentIdx != null ? "Inclui a partida atual após a eliminação" : `${rows.length} partida${rows.length !== 1 ? "s" : ""} jogada${rows.length !== 1 ? "s" : ""}`}
+            </div>
           </div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: C.dim, cursor: "pointer" }}><X size={20} /></button>
         </div>
@@ -789,13 +801,8 @@ function TeamStandingsModal({ team, matchesData, playersById, currentIdx, curren
   const rows = [];
   matchesData.forEach((m, idx) => {
     if (!m) return;
-    const isCurrentLiveMatch = idx === currentIdx && currentRev < m.timeline.length;
-    if (isCurrentLiveMatch) {
-      const liveRow = liveTableRows?.find((r) => r.id === team.id);
-      if (liveRow?.alive !== false) return;
-      rows.push({ match: idx + 1, place: liveRow.placement, kills: liveRow.kills, points: liveRow.points });
-      return;
-    }
+    const isCurrentLiveMatch = idx === currentIdx && currentRev < (m.timeline?.length || 0);
+    if (isCurrentLiveMatch) return;
     const r = m.results?.find((x) => x.id === team.id);
     if (r) rows.push({ match: idx + 1, place: r.place, kills: r.kills, points: r.points });
   });
@@ -998,7 +1005,7 @@ function FullStandingsModal({ standings, scope, scopeOptions, scopeLabel, onScop
               {rows.map((p) => {
                 const rank = standings.indexOf(p) + 1;
                 return (
-                  <tr key={p.id} style={{ cursor: "default" }}
+                  <tr key={p.id} onClick={() => onSelect(p)} style={{ cursor: "pointer" }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = C.panel2)}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
@@ -1096,8 +1103,8 @@ function Standings({ standings, liveMemberStatusByTeam, scope, scopeOptions, sco
           const rank = standings.indexOf(p) + 1;
           const isAliveNow = liveAliveById ? liveAliveById[p.id] : null;
           return (
-            <div key={p.id} style={{
-              display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 8, cursor: "default",
+            <div key={p.id} onClick={() => onSelect(p)} style={{
+              display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", borderRadius: 8, cursor: "pointer",
               opacity: isAliveNow === false ? 0.6 : 1,
             }}
               onMouseEnter={(e) => (e.currentTarget.style.background = C.panel2)}
@@ -1164,8 +1171,8 @@ function MatchTable({ rows, playersById, onSelect }) {
           const p = playersById[r.id];
           const isTop = r.placement && r.placement === 1;
           return (
-            <div key={r.id} style={{
-              display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, cursor: "default",
+            <div key={r.id} onClick={() => onSelect(p)} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "7px 8px", borderRadius: 8, cursor: "pointer",
               borderLeft: isTop ? `3px solid ${C.gold}` : r.placement && r.placement <= 10 ? `3px solid ${C.purple}` : "3px solid transparent",
               background: isTop ? "rgba(255,182,39,0.06)" : "transparent", marginBottom: 1,
               opacity: r.alive ? 1 : 0.62,
@@ -1312,7 +1319,7 @@ function StandingsHistoryModal({ players, teamSize, matchesData, matchDone, tota
         </tr></thead><tbody>
           {rows.map(p=><tr key={p.id} style={{borderTop:`1px solid ${C.line}`}}>
             <td style={{padding:"12px 14px",fontFamily:"Teko,sans-serif",fontSize:28}}>{p.rank}</td>
-            <td style={{padding:"12px 14px",fontWeight:700,cursor:"default",fontSize:18}}>{p.name}</td>
+            <td onClick={()=>onSelect(p)} style={{padding:"12px 14px",fontWeight:700,cursor:"pointer",fontSize:18}}>{p.name}</td>
             <td style={{padding:"12px 14px",textAlign:"right",fontWeight:800,fontSize:18}}>{p.movement==null?<span style={{color:C.dim2}}>—</span>:p.movement>0?<span style={{color:C.cyan}}>↑ {p.movement}</span>:p.movement<0?<span style={{color:C.red}}>↓ {Math.abs(p.movement)}</span>:<span style={{color:C.dim}}>—</span>}</td>
             <td style={{padding:"12px 14px",textAlign:"right",color:C.gold,fontFamily:"Teko,sans-serif",fontSize:28}}>{p.points}</td><td style={{padding:"12px 14px",textAlign:"right",fontSize:16}}>{p.played}</td><td style={{padding:"12px 14px",textAlign:"right",fontSize:16}}>{p.wins}</td><td style={{padding:"12px 14px",textAlign:"right",fontSize:16}}>{p.top10}</td><td style={{padding:"12px 14px",textAlign:"right",color:C.red,fontSize:16}}>{p.kills}</td>
           </tr>)}
@@ -1628,9 +1635,8 @@ export default function App() {
   // Usado nas tabelas de classificação: se a linha for uma equipe com mais de um
   // integrante, abre o modal com TODOS os integrantes; senão (modo solo), abre o jogador direto.
   function openStandingsRow(p) {
-    // Desativado para evitar spoilers ao navegar pela tabela: o detalhe do jogador/equipe
-    // só pode ser acessado por fluxos explícitos, não ao clicar na própria tabela.
-    return undefined;
+    if (p.memberIds && p.memberIds.length > 1) setSelectedStandingsTeam(p);
+    else setSelectedPlayer(playersById[p.memberIds?.[0]] || p);
   }
   const [showFinal, setShowFinal] = useState(false);
   const [day, setDay] = useState(1);
@@ -2218,8 +2224,8 @@ export default function App() {
         }
       `}</style>
 
-      {selectedPlayer && <PlayerModal player={selectedPlayer} matchesData={matchesData} onClose={() => setSelectedPlayer(null)} />}
-      {selectedTeam && <TeamModal team={selectedTeam} current={current} currentRev={currentRev} playersById={playersById} onClose={() => setSelectedTeam(null)} />}
+      {selectedPlayer && <PlayerModal player={selectedPlayer} matchesData={matchesData} currentIdx={currentIdx} currentRev={currentRev} status={status} onClose={() => setSelectedPlayer(null)} />}
+      {selectedTeam && <TeamModal team={selectedTeam} current={current} currentRev={currentRev} playersById={playersById} liveTableRows={liveTableRows} onClose={() => setSelectedTeam(null)} />}
       {selectedStandingsTeam && <TeamStandingsModal team={selectedStandingsTeam} matchesData={matchesData} playersById={playersById} currentIdx={currentIdx} currentRev={currentRev} liveTableRows={liveTableRows} onClose={() => setSelectedStandingsTeam(null)} />}
       {showEliminationHistory && <EliminationHistoryModal items={allFeed} matchNumber={currentIdx + 1} playersById={playersById} onSelectPlayer={setSelectedPlayer} onClose={() => setShowEliminationHistory(false)} />}
 
@@ -2267,7 +2273,7 @@ export default function App() {
             </div>
             <div>
               {totalStandings.slice(0, 20).map((p, idx) => (
-                <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, cursor: "default" }}>
+                <div key={p.id} onClick={() => openStandingsRow(p)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 8, cursor: "pointer" }}>
                   <div style={{ width: 22, fontFamily: "Teko, sans-serif", fontSize: 18, color: idx === 0 ? C.gold : C.dim }}>{idx + 1}</div>
                   <Avatar name={p.name} hue={p.hue} size={24} />
                   <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{p.name}</div>
